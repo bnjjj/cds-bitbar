@@ -1,0 +1,11 @@
+[package]
+name = "cds-bitbar"
+version = "0.1.0"
+authors = ["Benjamin Coenen <benjamin.coenen@hotmail.com>"]
+edition = "2018"
+
+[dependencies]
+sdk-cds = { path = "/Users/bcoenen/golang/src/github.com/ovh/cds/sdk/rust/sdk-cds" }
+serde_json = "1.0.0"
+rust-bitbar = { path = "../rust-bitbar" }
+dirs = "1.0.4"

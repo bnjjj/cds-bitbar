@@ -42,9 +42,16 @@ fn main() {
 fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
     let mut status_line_text = format!("{}", cds_client.name);
     let mut status_line = Line::new(status_line_text.to_string());
-    let broadcasts: Vec<models::Broadcast> = cds_client.broadcasts().expect("cannot get broadcasts").into_iter().filter(|b| !b.read).collect();
+    let broadcasts: Vec<models::Broadcast> = cds_client
+        .broadcasts()
+        .expect("cannot get broadcasts")
+        .into_iter()
+        .filter(|b| !b.read)
+        .collect();
     let nb_broadcasts = broadcasts.len();
-    let warning: bool = (&broadcasts).into_iter().any(|b| b.level == "warning".to_string());
+    let warning: bool = (&broadcasts)
+        .into_iter()
+        .any(|b| b.level == "warning".to_string());
     let mut sub_menu = SubMenu::new();
 
     let cds_url = cds_client.config().expect("cannot get config urls of CDS");
@@ -54,22 +61,22 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
     if nb_broadcasts > 0 {
         status_line_text = format!("{} 🔔{}", cds_client.name, nb_broadcasts);
         if warning {
-            status_line.set_color("orange".into());
+            status_line.set_color("orange");
         } else {
-            status_line.set_color("blue".into());
+            status_line.set_color("blue");
         }
 
-        let mut broadcast_title = Line::new("Broadcasts".into());
-        broadcast_title.set_color("#8c96a5".into());
+        let mut broadcast_title = Line::new("Broadcasts");
+        broadcast_title.set_color("#8c96a5");
 
         sub_menu.add_line(broadcast_title);
         for broadcast in broadcasts.into_iter() {
             let mut line = Line::new(format!("{}", broadcast.title));
             line.set_href(format!("{}/broadcast/{}", cds_ui_url, broadcast.id));
             if broadcast.level == "warning" {
-                line.set_color("orange".into());
+                line.set_color("orange");
             } else {
-                line.set_color("blue".into());
+                line.set_color("blue");
             }
             sub_menu.add_line(line);
         }
@@ -80,8 +87,8 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
     let bookmarks = cds_client.bookmarks().expect("cannot get bookmarks");
 
     if bookmarks.len() > 0 {
-        let mut bookmarks_title = Line::new("Bookmarks".into());
-        bookmarks_title.set_color("#8c96a5".into());
+        let mut bookmarks_title = Line::new("Bookmarks");
+        bookmarks_title.set_color("#8c96a5");
         sub_menu.add_line(bookmarks_title);
     }
 
@@ -105,18 +112,18 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
                 ));
                 match last_run.status.as_ref() {
                     "Success" => {
-                        workflow_line.set_color(String::from("green"));
-                    },
+                        workflow_line.set_color("green");
+                    }
                     "Building" | "Checking" | "Waiting" => {
-                        workflow_line.set_color(String::from("blue"));
+                        workflow_line.set_color("blue");
                         in_progress += 1;
-                    },
+                    }
                     "Skipped" | "Never Built" => {
-                        workflow_line.set_color(String::from("grey"));
-                    },
+                        workflow_line.set_color("grey");
+                    }
                     _ => {
-                        workflow_line.set_color(String::from("red"));
-                    },
+                        workflow_line.set_color("red");
+                    }
                 };
                 workflow_line.set_href(format!(
                     "{}/project/{}/workflow/{}/run/{}",
@@ -130,7 +137,7 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
     if in_progress > 0 {
         status_line_text = format!("{} 🚧{}", status_line_text, in_progress);
     }
-    status_line.set_text(status_line_text.into());
+    status_line.set_text(status_line_text);
 
     plugin.set_status_line(status_line);
     plugin.set_sub_menu(sub_menu);
@@ -143,14 +150,14 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
         .expect("cannot get cds queue count");
 
     let mut danger = false;
-    let mut text: String = format!("{} ✔︎", cds_client.name).into();
+    let mut text: String = format!("{} ✔︎", cds_client.name);
     let mut status_line = Line::new(text.to_string());
     if let Some(lines) = cds_status.lines {
         for line in lines.iter().as_ref() {
             if line.component == "Global/Status" {
                 if line.status != "OK" {
-                    text = format!("{} ✘", cds_client.name).into();
-                    status_line.set_color("red".to_string());
+                    text = format!("{} ✘", cds_client.name);
+                    status_line.set_color("red");
                     danger = true;
                 }
                 break;
@@ -160,11 +167,11 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
 
     if !danger {
         if queue_count.count > 50 {
-            status_line.set_color("orange".to_string());
+            status_line.set_color("orange");
         } else if queue_count.count > 100 {
-            status_line.set_color("red".to_string());
+            status_line.set_color("red");
         } else {
-            status_line.set_color("green".to_string());
+            status_line.set_color("green");
         }
     }
 
@@ -195,18 +202,18 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
                 ));
                 match last_run.status.as_ref() {
                     "Success" => {
-                        workflow_line.set_color(String::from("green"));
-                    },
+                        workflow_line.set_color("green");
+                    }
                     "Building" | "Checking" | "Waiting" => {
-                        workflow_line.set_color(String::from("blue"));
+                        workflow_line.set_color("blue");
                         in_progress += 1;
-                    },
+                    }
                     "Skipped" | "Never Built" => {
-                        workflow_line.set_color(String::from("grey"));
-                    },
+                        workflow_line.set_color("grey");
+                    }
                     _ => {
-                        workflow_line.set_color(String::from("red"));
-                    },
+                        workflow_line.set_color("red");
+                    }
                 };
                 workflow_line.set_href(format!(
                     "{}/project/{}/workflow/{}/run/{}",

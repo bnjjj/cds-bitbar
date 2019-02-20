@@ -10,6 +10,12 @@ use rust_bitbar::{Line, Plugin, SubMenu};
 use sdk_cds::client::Client;
 use sdk_cds::models;
 
+const GREEN: &str = "#21BA45";
+const RED: &str = "#FF4F60";
+const BLUE: &str = "#4fa3e3";
+const LIGHT_GREY: &str = "#8c96a5";
+const ORANGE: &str = "#FE9A76";
+
 fn main() {
     let mut file = File::open(format!(
         "{}/.cds.conf.json",
@@ -61,22 +67,22 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
     if nb_broadcasts > 0 {
         status_line_text = format!("{} 🔔{}", cds_client.name, nb_broadcasts);
         if warning {
-            status_line.set_color("orange");
+            status_line.set_color(ORANGE);
         } else {
-            status_line.set_color("blue");
+            status_line.set_color(BLUE);
         }
 
         let mut broadcast_title = Line::new("Broadcasts");
-        broadcast_title.set_color("#8c96a5");
+        broadcast_title.set_color(LIGHT_GREY);
 
         sub_menu.add_line(broadcast_title);
         for broadcast in broadcasts.into_iter() {
             let mut line = Line::new(format!("{}", broadcast.title));
             line.set_href(format!("{}/broadcast/{}", cds_ui_url, broadcast.id));
             if broadcast.level == "warning" {
-                line.set_color("orange");
+                line.set_color(ORANGE);
             } else {
-                line.set_color("blue");
+                line.set_color(BLUE);
             }
             sub_menu.add_line(line);
         }
@@ -88,7 +94,7 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
 
     if bookmarks.len() > 0 {
         let mut bookmarks_title = Line::new("Bookmarks");
-        bookmarks_title.set_color("#8c96a5");
+        bookmarks_title.set_color(LIGHT_GREY);
         sub_menu.add_line(bookmarks_title);
     }
 
@@ -112,17 +118,17 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
                 ));
                 match last_run.status.as_ref() {
                     "Success" => {
-                        workflow_line.set_color("green");
+                        workflow_line.set_color(GREEN);
                     }
                     "Building" | "Checking" | "Waiting" => {
-                        workflow_line.set_color("blue");
+                        workflow_line.set_color(BLUE);
                         in_progress += 1;
                     }
                     "Skipped" | "Never Built" => {
                         workflow_line.set_color("grey");
                     }
                     _ => {
-                        workflow_line.set_color("red");
+                        workflow_line.set_color(RED);
                     }
                 };
                 workflow_line.set_href(format!(
@@ -153,35 +159,34 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
     let mut text: String = format!("{} ✔︎", cds_client.name);
     let mut status_line = Line::new(text.to_string());
     if let Some(lines) = cds_status.lines {
-        for line in lines.iter().as_ref() {
-            if line.component == "Global/Status" {
-                if line.status != "OK" {
-                    text = format!("{} ✘", cds_client.name);
-                    status_line.set_color("red");
-                    danger = true;
-                }
-                break;
-            }
-        }
+        danger = lines
+            .iter()
+            .any(|line| line.component == "Global/Status" && line.status == "AL");
     }
 
     if !danger {
         if queue_count.count > 50 {
-            status_line.set_color("orange");
+            status_line.set_color(ORANGE);
         } else if queue_count.count > 100 {
-            status_line.set_color("red");
+            status_line.set_color(RED);
         } else {
-            status_line.set_color("green");
+            status_line.set_color(GREEN);
         }
+    } else {
+        text = format!("{} ✘", cds_client.name);
+        status_line.set_color(RED);
     }
 
     let cds_url = cds_client.config().expect("cannot get config urls of CDS");
     let host = cds_client.host.to_string();
     let cds_ui_url = cds_url.get("url.ui").unwrap_or(&host);
 
+    let mut sub_menu = SubMenu::new();
+    let mut bookmarks_title = Line::new("Bookmarks");
+    bookmarks_title.set_color(LIGHT_GREY);
+    sub_menu.add_line(bookmarks_title);
     let bookmarks = cds_client.bookmarks().expect("cannot get bookmarks");
     let mut in_progress: u16 = 0;
-    let mut sub_menu = SubMenu::new();
     for bookmark in bookmarks
         .into_iter()
         .filter(|bookmark| bookmark._type == "workflow")
@@ -202,17 +207,17 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
                 ));
                 match last_run.status.as_ref() {
                     "Success" => {
-                        workflow_line.set_color("green");
+                        workflow_line.set_color(GREEN);
                     }
                     "Building" | "Checking" | "Waiting" => {
-                        workflow_line.set_color("blue");
+                        workflow_line.set_color(BLUE);
                         in_progress += 1;
                     }
                     "Skipped" | "Never Built" => {
                         workflow_line.set_color("grey");
                     }
                     _ => {
-                        workflow_line.set_color("red");
+                        workflow_line.set_color(RED);
                     }
                 };
                 workflow_line.set_href(format!(
@@ -224,7 +229,7 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
         }
     }
 
-    text = format!("{}({})", text, queue_count.count);
+    text = format!("{} 🚀{}", text, queue_count.count);
     if in_progress > 0 {
         text = format!("{} 🚧{}", text, in_progress);
     }

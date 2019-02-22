@@ -101,7 +101,7 @@ name = "cds-bitbar"
 version = "0.1.0"
 dependencies = [
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-bitbar 0.3.2",
+ "rust-bitbar 0.3.3",
  "sdk-cds 0.1.0",
  "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -836,7 +836,7 @@ dependencies = [
 
 [[package]]
 name = "rust-bitbar"
-version = "0.3.2"
+version = "0.3.3"
 
 [[package]]
 name = "rustc-demangle"

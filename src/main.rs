@@ -89,56 +89,13 @@ fn display_as_user(cds_client: &Client, plugin: &mut Plugin) {
         sub_menu.add_hr();
     }
 
-    let mut in_progress: u16 = 0;
     let bookmarks = cds_client.bookmarks().expect("cannot get bookmarks");
-
     if bookmarks.len() > 0 {
         let mut bookmarks_title = Line::new("Bookmarks");
         bookmarks_title.set_color(LIGHT_GREY);
         sub_menu.add_line(bookmarks_title);
     }
-
-    for bookmark in bookmarks
-        .into_iter()
-        .filter(|bookmark| bookmark._type == "workflow")
-    {
-        let last_run_res = cds_client.last_run(&bookmark.key, &bookmark.workflow_name);
-
-        match last_run_res {
-            Err(error) => {
-                sub_menu.add_line(Line::new(format!(
-                    "{}/{} ERROR : {:?}",
-                    bookmark.key, bookmark.workflow_name, error
-                )));
-            }
-            Ok(last_run) => {
-                let mut workflow_line = Line::new(format!(
-                    "{}/{} #{}.{}",
-                    bookmark.key, bookmark.workflow_name, last_run.num, last_run.last_subnumber
-                ));
-                match last_run.status.as_ref() {
-                    "Success" => {
-                        workflow_line.set_color(GREEN);
-                    }
-                    "Building" | "Checking" | "Waiting" => {
-                        workflow_line.set_color(BLUE);
-                        in_progress += 1;
-                    }
-                    "Skipped" | "Never Built" => {
-                        workflow_line.set_color("grey");
-                    }
-                    _ => {
-                        workflow_line.set_color(RED);
-                    }
-                };
-                workflow_line.set_href(format!(
-                    "{}/project/{}/workflow/{}/run/{}",
-                    cds_ui_url, bookmark.key, bookmark.workflow_name, last_run.num
-                ));
-                sub_menu.add_line(workflow_line);
-            }
-        }
-    }
+    let in_progress = add_workflow_run_status(cds_client, &cds_ui_url, &bookmarks, &mut sub_menu);
 
     if in_progress > 0 {
         status_line_text = format!("{} 🚧{}", status_line_text, in_progress);
@@ -182,11 +139,31 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
     let cds_ui_url = cds_url.get("url.ui").unwrap_or(&host);
 
     let mut sub_menu = SubMenu::new();
-    let mut bookmarks_title = Line::new("Bookmarks");
-    bookmarks_title.set_color(LIGHT_GREY);
-    sub_menu.add_line(bookmarks_title);
     let bookmarks = cds_client.bookmarks().expect("cannot get bookmarks");
-    let mut in_progress: u16 = 0;
+    if bookmarks.len() > 0 {
+        let mut bookmarks_title = Line::new("Bookmarks");
+        bookmarks_title.set_color(LIGHT_GREY);
+        sub_menu.add_line(bookmarks_title);
+    }
+    let in_progress = add_workflow_run_status(cds_client, &cds_ui_url, &bookmarks, &mut sub_menu);
+
+    text = format!("{} 🚀{}", text, queue_count.count);
+    if in_progress > 0u8 {
+        text = format!("{} 🚧{}", text, in_progress);
+    }
+    status_line.set_text(text);
+    plugin.set_status_line(status_line);
+
+    plugin.set_sub_menu(sub_menu);
+}
+
+fn add_workflow_run_status(
+    cds_client: &Client,
+    cds_ui_url: &str,
+    bookmarks: &Vec<models::Bookmark>,
+    sub_menu: &mut SubMenu,
+) -> u8 {
+    let mut in_progress: u8 = 0;
     for bookmark in bookmarks
         .into_iter()
         .filter(|bookmark| bookmark._type == "workflow")
@@ -195,10 +172,17 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
 
         match last_run_res {
             Err(error) => {
-                sub_menu.add_line(Line::new(format!(
-                    "{}/{} ERROR : {:?}",
-                    bookmark.key, bookmark.workflow_name, error
-                )));
+                if error.status == 404u16 {
+                    sub_menu.add_line(Line::new(format!(
+                        "{}/{} #0.0 never built",
+                        bookmark.key, bookmark.workflow_name
+                    )));
+                } else {
+                    sub_menu.add_line(Line::new(format!(
+                        "{}/{} ERROR : {:?}",
+                        bookmark.key, bookmark.workflow_name, error
+                    )));
+                }
             }
             Ok(last_run) => {
                 let mut workflow_line = Line::new(format!(
@@ -229,12 +213,5 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
         }
     }
 
-    text = format!("{} 🚀{}", text, queue_count.count);
-    if in_progress > 0 {
-        text = format!("{} 🚧{}", text, in_progress);
-    }
-    status_line.set_text(text);
-    plugin.set_status_line(status_line);
-
-    plugin.set_sub_menu(sub_menu);
+    in_progress
 }

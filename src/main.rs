@@ -1,11 +1,15 @@
 extern crate dirs;
+extern crate rayon;
 extern crate rust_bitbar;
 extern crate sdk_cds;
 extern crate serde_json;
 
 use std::fs::File;
 use std::io::Read;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
+use rayon::prelude::*;
 use rust_bitbar::{Line, Plugin, SubMenu};
 use sdk_cds::client::Client;
 use sdk_cds::models;
@@ -148,7 +152,7 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
     let in_progress = add_workflow_run_status(cds_client, &cds_ui_url, &bookmarks, &mut sub_menu);
 
     text = format!("{} 🚀{}", text, queue_count.count);
-    if in_progress > 0u8 {
+    if in_progress > 0 {
         text = format!("{} 🚧{}", text, in_progress);
     }
     status_line.set_text(text);
@@ -162,56 +166,63 @@ fn add_workflow_run_status(
     cds_ui_url: &str,
     bookmarks: &Vec<models::Bookmark>,
     sub_menu: &mut SubMenu,
-) -> u8 {
-    let mut in_progress: u8 = 0;
-    for bookmark in bookmarks
-        .into_iter()
+) -> usize {
+    let in_progress = Arc::new(AtomicUsize::new(0));
+    let lines: Vec<Line> = bookmarks
+        .into_par_iter()
         .filter(|bookmark| bookmark._type == "workflow")
-    {
-        let last_run_res = cds_client.last_run(&bookmark.key, &bookmark.workflow_name);
+        .map(|bookmark| {
+            let last_run_res = cds_client.last_run(&bookmark.key, &bookmark.workflow_name);
+            // let in_progress = in_progress.clone();
 
-        match last_run_res {
-            Err(error) => {
-                if error.status == 404u16 {
-                    sub_menu.add_line(Line::new(format!(
-                        "{}/{} #0.0 never built",
-                        bookmark.key, bookmark.workflow_name
-                    )));
-                } else {
-                    sub_menu.add_line(Line::new(format!(
-                        "{}/{} ERROR : {:?}",
-                        bookmark.key, bookmark.workflow_name, error
-                    )));
+            match last_run_res {
+                Err(error) => {
+                    if error.status == 404u16 {
+                        return Line::new(format!(
+                            "{}/{} #0.0 never built",
+                            bookmark.key, bookmark.workflow_name
+                        ));
+                    } else {
+                        return Line::new(format!(
+                            "{}/{} ERROR : {:?}",
+                            bookmark.key, bookmark.workflow_name, error
+                        ));
+                    }
+                }
+                Ok(last_run) => {
+                    let mut workflow_line = Line::new(format!(
+                        "{}/{} #{}.{}",
+                        bookmark.key, bookmark.workflow_name, last_run.num, last_run.last_subnumber
+                    ));
+                    match last_run.status.as_ref() {
+                        "Success" => {
+                            workflow_line.set_color(GREEN);
+                        }
+                        "Building" | "Checking" | "Waiting" => {
+                            workflow_line.set_color(BLUE);
+                            in_progress
+                                .store(in_progress.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
+                        }
+                        "Skipped" | "Never Built" => {
+                            workflow_line.set_color("grey");
+                        }
+                        _ => {
+                            workflow_line.set_color(RED);
+                        }
+                    };
+                    workflow_line.set_href(format!(
+                        "{}/project/{}/workflow/{}/run/{}",
+                        cds_ui_url, bookmark.key, bookmark.workflow_name, last_run.num
+                    ));
+                    return workflow_line;
                 }
             }
-            Ok(last_run) => {
-                let mut workflow_line = Line::new(format!(
-                    "{}/{} #{}.{}",
-                    bookmark.key, bookmark.workflow_name, last_run.num, last_run.last_subnumber
-                ));
-                match last_run.status.as_ref() {
-                    "Success" => {
-                        workflow_line.set_color(GREEN);
-                    }
-                    "Building" | "Checking" | "Waiting" => {
-                        workflow_line.set_color(BLUE);
-                        in_progress += 1;
-                    }
-                    "Skipped" | "Never Built" => {
-                        workflow_line.set_color("grey");
-                    }
-                    _ => {
-                        workflow_line.set_color(RED);
-                    }
-                };
-                workflow_line.set_href(format!(
-                    "{}/project/{}/workflow/{}/run/{}",
-                    cds_ui_url, bookmark.key, bookmark.workflow_name, last_run.num
-                ));
-                sub_menu.add_line(workflow_line);
-            }
-        }
+        })
+        .collect();
+
+    for line in lines {
+        sub_menu.add_line(line);
     }
 
-    in_progress
+    in_progress.load(Ordering::Relaxed)
 }

@@ -27,5 +27,4 @@ Pay attention you also need to put a file named `.cds.conf.json` in your current
 Roadmap:
 
 - [ ] Add native notifications
-- [ ] Use good sdk dependencies
 - [ ] Add support of native keychain

@@ -5,7 +5,7 @@ authors = ["Benjamin Coenen <benjamin.coenen@hotmail.com>"]
 edition = "2018"
 
 [dependencies]
-sdk-cds = "0.1.0"
+sdk-cds = "0.2.0"
 serde_json = "1.0.0"
 rust-bitbar = "0.3.4"
 dirs = "1.0.4"

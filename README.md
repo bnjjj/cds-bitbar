@@ -4,6 +4,10 @@ This repo contains source code of a [Bitbar](https://github.com/matryer/bitbar) 
 
 ![CDS Bitbar Plugin](./cdsbitbar.png)
 
+## Prerequisite
+
++ You must have a [Bitbar](https://getbitbar.com/) installed on your mac with a bitbat plugins folder configured. 
+
 ## Installation
 
 In order to let this plugin works you need to download the last release of this plugin in [release section](https://github.com/bnjjj/cds-bitbar/releases) and then put this binary in your bitbar plugins directory.

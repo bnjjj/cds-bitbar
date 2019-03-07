@@ -10,7 +10,7 @@ This repo contains source code of a [Bitbar](https://github.com/matryer/bitbar) 
 
 ## Installation
 
-In order to let this plugin works you need to download the last release of this plugin in [release section](https://github.com/bnjjj/cds-bitbar/releases) and then put this binary in your bitbar plugins directory.
+In order to let this plugin works you need to download the last release of this plugin in [release section](https://github.com/bnjjj/cds-bitbar/releases) and then put this binary in your bitbar plugins directory. Please make sure that the binary on your mac is available in `execute`, if not make a `chmod +x cds-bitbar`.
 
 Pay attention you also need to put a file named `.cds.conf.json` in your current home directory (`$HOME/.cds.conf.json`) and put this inside with your personal data:
 

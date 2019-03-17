@@ -125,6 +125,28 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
             .any(|line| line.component == "Global/Status" && line.status == "AL");
     }
 
+    let cds_url = cds_client.config().expect("cannot get config urls of CDS");
+    let host = cds_client.host.to_string();
+    let cds_ui_url = cds_url.get("url.ui").unwrap_or(&host);
+
+    let mut sub_menu = SubMenu::new();
+    let mut status_line_title = Line::new("CDS Status");
+    status_line_title.set_color(LIGHT_GREY);
+    sub_menu.add_line(status_line_title);
+    let status_line_details = if danger {
+        let mut curr_line = Line::new("Global/Status Alarm");
+        curr_line.set_color(RED);
+        curr_line.set_href(format!("{}/admin/services",cds_ui_url));
+        curr_line
+    } else {
+        let mut curr_line = Line::new("Global/Status OK");
+        curr_line.set_color(GREEN);
+        curr_line.set_href(format!("{}/admin/services",cds_ui_url));
+        curr_line
+    };
+    sub_menu.add_line(status_line_details);
+    sub_menu.add_hr();
+
     if !danger {
         if queue_count.count > 50 {
             status_line.set_color(ORANGE);
@@ -138,11 +160,6 @@ fn display_as_admin(cds_client: &Client, plugin: &mut Plugin) {
         status_line.set_color(RED);
     }
 
-    let cds_url = cds_client.config().expect("cannot get config urls of CDS");
-    let host = cds_client.host.to_string();
-    let cds_ui_url = cds_url.get("url.ui").unwrap_or(&host);
-
-    let mut sub_menu = SubMenu::new();
     let bookmarks = cds_client.bookmarks().expect("cannot get bookmarks");
     if bookmarks.len() > 0 {
         let mut bookmarks_title = Line::new("Bookmarks");
